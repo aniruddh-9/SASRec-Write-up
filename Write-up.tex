@@ -171,6 +171,26 @@ To alleviate these problems,
 
 \end{itemize}
 
-\section{Complexity Analysis}
+\textbf{\textit{Explicit User Modelling}} - 
+	To provide personalized recommendation an additional user embedding matrix can be added to the input embedding matrix. An explicit user embedding represents users’ preferences and implicit user embedding consists of users’ previous actions and visited items, etc.   
+
+
+\section{Complexity}
+
+		\textbf{Space Complexity }\\ 
+		\quad The learned parameters in our model
+are from the embeddings and parameters in the self-attention
+layers, feed-forward networks and layer normalization.The total number of parameters is $O(\mid I \mid d + nd + d2)$, which is moderate compared to other methods (e.g. $O(\mid U \mid d + \mid I \mid d)$ for FPMC) since it does not grow with the number of users, and d is typically small in recommendation problems.\\$I$ – Item Set \\$U$ – User Set \\$d$ – Latent vector dimension \\
+
+ \textbf{Time Complexity} \\
+		Mainly due to the self-attention layer and the feed-forward network, which is $O(n^{2}d + nd^{2})$. The dominant term is typically $O(n^{2}d)$ from the self-attention layer. A convenient property in our model is that the computation in each self-attention layer is fully parallelizable, which is amenable to GPU acceleration.
+
 \section{Conclusion}
+
+\begin{itemize}
+\item The proposed Self Attention Sequential Recommendation model (SASRec) models the entire user sequences and adaptively considers consumed items of prediction. 
+\item SASRec model has worked well with both sparse and dense datasets. This model outperforms state-of-the-art baselines. 
+\item SASRec model is faster than conventional RNN/CNN based approaches due to more scope of parallelization.
+
+\end{itemize}
 \end{document}

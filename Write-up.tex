@@ -122,7 +122,7 @@ Let’s see how the input flows between these components to generate output.
 	\begin{enumerate}
 	\item First step is to create 3 vectors from encoder’s input. So, for each embedding a Query vector, a Key vector and a Value vector is created. These vectors are created by multiplying the embedding by 3 matrices $(W^{Q},W^{K},W^{V})$ that we trained during the training process.
 	\item Second step is to calculate a score. It is done by calculating the matrix  product of the query vector $Q$ and key vector $K$.
-	\item Divide the score by square root of dimension of key vector. Pass this result to SoftMax. SoftMax normalizes the scores, so that they add to 1.
+	\item Divide the score by square root of dimension $d$ of key vector. Pass this result to SoftMax. SoftMax normalizes the scores, so that they add to 1.
 	\[Attention (Q,K,V) = softmax\Bigg(\frac{QK^{T}}{\sqrt{d}}\Bigg)V\]
 
 	\item Now, multiply each value vector by the SoftMax score.

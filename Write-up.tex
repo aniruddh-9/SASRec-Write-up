@@ -1,0 +1,176 @@
+\documentclass[11pt]{article}
+\usepackage[affil-it]{authblk}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\begin{document}
+\title{A write-up on Self-Attentive Sequential Recommendation}
+\author{Aniruddha M. Mishra} 
+\affil{411650, National Institute of Technology, Andhra Pradesh}
+\maketitle
+
+\emph{Abstract} - 
+	Transformer model is purely based on attention mechanism (self-attention). Here self-attention mechanism is applied  to sequential recommendation system. The goal is to draw context from all actions in the past (RNN) and frame prediction in terms of small number of action (MC).Self-Attentive Sequential Recommendation (SASRec) is faster than CNN/RNN based alternatives (as Self-attention block is suitable for parallel acceleration).This model is based on Transformer model,where self-attention is used. Transformer model has achieved state-of-the-art performance in NLP and machine translation. Here, an attempt to use this model in recommendation system is done.
+
+\section{Introduction}
+Basic two approaches for recommendation system includes -
+\begin{enumerate}
+			\item Markov Chain (MC)
+				\begin{enumerate}
+					\item Assumes users next action can be predicted on the basis of just their last(or last few) actions.
+					\item Performs best in sparse datasets where model parsimony is critical.
+				\end{enumerate}
+			\item RNNs
+				\begin{enumerate}
+					\item Allows long-term semantics to be uncovered.
+					\item Performs best in denser datasets where higher complexity is affordable.
+				\end{enumerate}
+\end{enumerate}
+To balance the shortcomings of both these models \textbf{SASRec} is introduced.
+\begin{enumerate}
+	\item Allows to capture long term semantics like RNN.
+	\item Uses Attention Mechanism (makes prediction on relatively few actions like MC).
+\end{enumerate}
+
+
+\section{Kinds of Recommendation}
+
+\begin{enumerate}
+	\item \emph{General Recommendation}
+	- Recommender models the compatibility between user and items using history feedback.
+	
+	\textbf{User Feedbacks}
+	\begin{itemize}
+		\item \textit{Explicit} - Ratings
+		\item \textit{Implicit} - Clicks, purchases, search history, etc.
+	\end{itemize}
+		\begin{enumerate}
+			\item \emph{Matrix Factorization (MF)} - Uncovers latent dimensions to represent user’s preferences and item properties.
+			\item \emph{Item Similarity Model (ISM)} - Doesn’t explicitly model each user with latent factors. Instead learns an item-item similarity matrix and measures users’ preference towards an item via measuring its similarities with the items the user has interacted before.
+		\end{enumerate}
+	
+	\item \emph{Temporal Recommendation} - Models timestamps of users’ activities. \textbf{TimeSVD++} splits time into several segments and then models users and items in each segment. Sequential recommendation differs slightly as it only considers order of actions and models sequential patterns independent of time.
+	
+	\item \emph{Sequential Recommendation} - First-order MC assumes next action is related to the previous one. Since the last visited is often the key factor affecting users’ next action, first-order MC shows strong performance. High-order MC takes several previous actions into consideration.\\
+	\textbf{GRU4Rec} uses Gated Recurrent Units (GRU) to model click sequences for session-based recommendation. In each step RNNs take the state from last step and current action as its input. These dependencies make RNNs less efficient, though techniques like ‘session-parallelism’ have been proposed
+	\item \emph{Attention Mechanism} - Basic idea is that sequential outputs each depend on ‘relevant’ parts of some input that model should focus on successively.
+Attention technique used above is essentially and additional component to the original model.
+
+\end{enumerate}
+
+\section{Transformer Model}
+
+To understand self-attention let's take quick look at transformer model.
+
+\begin{figure}[!h]
+	\begin{center}
+  \includegraphics[width=0.7\textwidth]{transformer-model.png}
+  \label{fig:transformer-model}
+  	\end{center}
+\end{figure}
+
+The transformer model consists of - 
+	\begin{enumerate}
+		\item A pack of six encoders (left block in the fig.1) and decoders (right block in fig.2).
+		\item Each encoder consists of a self-attention layer and a feed-forward layer.
+		\begin{itemize}
+				\item Self-attention layer helps encoder look at other activities in the sequence.
+				\item Output of self-attention layer is fed to feed-forward network
+		\end{itemize}
+
+3.	Decoder too, has both these layers but between then is a self-attention layer that helps decoder focus on relevant part of the input sequence.
+
+	\end{enumerate}
+
+Let’s see how the input flows between these components to generate output.
+
+\subsection{Embedding Layer}
+	\begin{enumerate}
+		\item Transform the input sequence $(S^{u}_{1},S^{u}_{2},S^{u}_{3},...S^{u}_{\mid S^{u} \mid -1})$ to fixed-length sequence $s = (s_{1},s_{2},s_{3},....,s_{n})$.
+		\begin{itemize}
+			\item If sequence length is greater than n, take the n recent actions.
+			\item If sequence length is less than n, repeatedly add a ‘padding item’ to left.
+		\end{itemize}	
+	 		\item Create Item-Embedding matrix M.
+			\item Retrieve Input-Embedding matrix E 
+\end{enumerate}	  
+	\[	E_{i} = M_{s_{i}} \]
+	\emph{Position Embedding} - 
+ To account for order of actions in input sequence,the transformer adds a vector to each input embedding. The intuition here is that adding these values to the embeddings provides meaningful distances between the embedding vectors once they’re projected into Q/K/V vectors and during dot-product attention
+	\[ 
+	\hat E = 
+	\begin{bmatrix}
+	M_{s_{1}} + P_{1}  \\
+	M_{s_{2}} + P_{2} \\
+		   ...			\\
+	M_{s_{n}} + P_{n}
+	\end{bmatrix}
+	\]		
+	After embedding the sequence, each of them flows through each of the two layers of encoder. Word in each position flows through its own path in encoder. There are dependencies between these words in self-attention layer. The feed-forward layer does not have these dependencies and can be executed in parallel.
+
+\subsection{Encoding}
+	\quad List of vectors is received as input, which is passed through self-attention layer then through feed-forward network.
+	\subsubsection{Self-Attention}
+	
+	\begin{enumerate}
+	\item First step is to create 3 vectors from encoder’s input. So, for each embedding a Query vector, a Key vector and a Value vector is created. These vectors are created by multiplying the embedding by 3 matrices $(W^{Q},W^{K},W^{V})$ that we trained during the training process.
+	\item Second step is to calculate a score. It is done by calculating the matrix  product of the query vector $Q$ and key vector $K$.
+	\item Divide the score by square root of dimension of key vector. Pass this result to SoftMax. SoftMax normalizes the scores, so that they add to 1.
+	\[Attention (Q,K,V) = softmax\Bigg(\frac{QK^{T}}{\sqrt{d}}\Bigg)V\]
+
+	\item Now, multiply each value vector by the SoftMax score.
+	\item Sum up the weighted value vectors. This is the output of self-attention layer. This is sent along to feed-forward network.
+	
+	\end{enumerate}
+	In our case, the self-attention operation takes
+the embedding $\hat E$ as input, converts it to three matrices through
+linear projections, and feeds them into an attention layer:
+	\[ S = SA(\hat{E}) = Attention(\hat{E}W^{Q},\hat{E}W^{K},\hat{E}W^{V})  \]
+
+Multi-head attention is used here. This improves the performance of attention layer in 2 ways:
+\begin{enumerate}
+	\item It expands the model’s ability to focus on different positions.
+	\item It gives the attention layer multiple “representation subspaces” (i.e. multiple sets of Query, Key, Value matrices, each set is used to project input embeddings into different subspaces). 
+\end{enumerate}
+Now, all the $Z$ matrix produced by different attention-heads are concatenated and multiplied by $W^{O}$ to give resultant matrix $Z$ which is sent to FFN.
+
+\subsection{Stacking Self-Attention Blocks}
+After the first self-attention block, $F_{i}$ aggregates all previous items’ embeddings. However, it might be useful to learn complex item transition by another self-attention on $F_{i}$ . So we stack a layer of self-attention blocks. (i.e. self-attention layer and feed-forward network).
+If network goes deeper some problems arises viz.
+\begin{itemize}
+	\item Overfitting
+	\item Training process becomes unstable (due to vanishing gradients)
+	\item Model with more parameters require more time for training
+\end{itemize}
+To alleviate these problems,
+            	  \[g(x) = x + Dropout(g(LayerNorm(x)))\]	
+ 	$g$ is \textit{self-attention} or \textit{feed-forward network}.
+           	Suppose, for layer $g$ in each block, we apply layer normalization on the input $x$ before feeding into $g$, apply \textit{dropout} on $g’s$ output, and add the input $x$ to the final output
+
+\subsection{Residuals}
+	\begin{itemize}
+		\item Each sub-layer in encoder has a residual connection, followed by layer-normalization.
+		\item In batch normalization, the statistics are computed across the batch and are the same for each example in the batch.
+		\item In contrast, in layer normalization, the statistics are computed across each feature and are independent of other examples. Unlike batch normalization, statistics used in layer norm are independent of other samples in the same batch
+			\[ g(x) = x + Dropout(g(LayerNorm(x))) \]
+	\end{itemize}  
+\quad \emph{Dropout} - 
+            	To alleviate overfitting problem dropout regularization technique is used. Basic idea is to turn off neurons with probability p while training and used all of them when testing. It can be viewed as a form of ensemble learning
+
+\subsection{Decoder}
+\begin{itemize}
+\item The output of the top encoder is then transformed into a set of attention vectors $K$ and $V$. These are to be used by each decoder in its “encoder-decoder attention” layer which helps the decoder focus on appropriate places in the input sequence.
+\item The output of each step is fed to the bottom decoder in the next time step, and the decoders bubble up their decoding results just like the encoders did. Also, we embed and add positional encoding to those decoder inputs to indicate position of each word.
+\item In the decoder, the self-attention layer is only allowed to attend to earlier positions in the output sequence. This is done by masking future positions (setting them to $-inf$) before the $softmax$ step in the self-attention calculation
+\end{itemize}
+
+\subsection{Final \emph{Linear} and \emph{Softmax} Layer}
+\begin{itemize}
+\item Linear Layer is just a fully connected neural network that projects the vector produced by the stack of decoders, into a much, much larger vector called \textit{logits} vector.
+\item 	Let’s assume that our model knows 5,000 movies that it learned from its training datasets. This would make the \textit{logits} vector 5,000 cells wide - each cell corresponding to the score of each movie. The \textit{softmax} layer then turns those scores to probabilities and the cell with the highest probability is chosen.
+
+\end{itemize}
+
+\section{Complexity Analysis}
+\section{Conclusion}
+\end{document}

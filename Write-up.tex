@@ -1,16 +1,23 @@
 \documentclass[11pt]{article}
 \usepackage[affil-it]{authblk}
+\usepackage{apacite}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{titling}
+\usepackage{url}
 
-\begin{document}
+\setlength{\droptitle}{-10em}   % This is your set screw
+
 \title{A write-up on Self-Attentive Sequential Recommendation}
 \author{Aniruddha M. Mishra} 
 \affil{411650, National Institute of Technology, Andhra Pradesh}
+\date{\vspace{-5ex}}
+\begin{document}
+
 \maketitle
 
 \emph{Abstract} - 
-	Transformer model is purely based on attention mechanism (self-attention). Here self-attention mechanism is applied  to sequential recommendation system. The goal is to draw context from all actions in the past (RNN) and frame prediction in terms of small number of action (MC).Self-Attentive Sequential Recommendation (SASRec) is faster than CNN/RNN based alternatives (as Self-attention block is suitable for parallel acceleration).This model is based on Transformer model,where self-attention is used. Transformer model has achieved state-of-the-art performance in NLP and machine translation. Here, an attempt to use this model in recommendation system is done.
+	Transformer model is purely based on attention mechanism (self-attention)\cite{jAlammar2}. Here self-attention mechanism is applied  to sequential recommendation system. The goal is to draw context from all actions in the past (RNN) and frame prediction in terms of small number of action (MC).Self-Attentive Sequential Recommendation (SASRec) \cite{kang2018self} is faster than CNN/RNN based alternatives (as Self-attention block is suitable for parallel acceleration).This model is based on Transformer model,where self-attention is used. Transformer model has achieved state-of-the-art performance in NLP and machine translation. Here, an attempt to use this model in recommendation system is done.
 
 \section{Introduction}
 Basic two approaches for recommendation system includes -
@@ -60,7 +67,7 @@ Attention technique used above is essentially and additional component to the or
 
 \section{Transformer Model}
 
-To understand self-attention let's take quick look at transformer model.
+To understand self-attention let's take quick look at transformer model\cite{jAlammar1}.
 
 \begin{figure}[!h]
 	\begin{center}
@@ -134,6 +141,17 @@ Multi-head attention is used here. This improves the performance of attention la
 \end{enumerate}
 Now, all the $Z$ matrix produced by different attention-heads are concatenated and multiplied by $W^{O}$ to give resultant matrix $Z$ which is sent to FFN.
 
+	\subsubsection{Feed-forward Network}
+Though the self-attention is able to aggregate all previous items’ embeddings
+with adaptive weights, ultimately it is still a linear model. 
+	
+	To endow the model with nonlinearity and to consider interactions
+between different latent dimensions, we apply a point-wise
+two-layer feed-forward network to all Si identically (sharing
+parameters):
+\[ F_{i} = FFN(S_{i}) = ReLU(S_{i}W^{(1)} + b^{(1)})W^{(2)} + b^{(2)} \]
+where $W^{(1)}$,$W^{(2)}$ are $d \times d$ matrices and $b^{(1)}$,$b^{(2)}$ are $d$-dimensional vectors.
+
 \subsection{Stacking Self-Attention Blocks}
 After the first self-attention block, $F_{i}$ aggregates all previous items’ embeddings. However, it might be useful to learn complex item transition by another self-attention on $F_{i}$ . So we stack a layer of self-attention blocks. (i.e. self-attention layer and feed-forward network).
 If network goes deeper some problems arises viz.
@@ -149,9 +167,9 @@ To alleviate these problems,
 
 \subsection{Residuals}
 	\begin{itemize}
-		\item Each sub-layer in encoder has a residual connection, followed by layer-normalization.
+		\item Each sub-layer in encoder has a residual connection, followed by layer-normalization\cite{kkurita}.
 		\item In batch normalization, the statistics are computed across the batch and are the same for each example in the batch.
-		\item In contrast, in layer normalization, the statistics are computed across each feature and are independent of other examples. Unlike batch normalization, statistics used in layer norm are independent of other samples in the same batch
+		\item In contrast, in layer normalization, the statistics are computed across each feature and are independent of other examples. Unlike batch normalization, statistics used in layer norm are independent of other samples in the same batch.
 			\[ g(x) = x + Dropout(g(LayerNorm(x))) \]
 	\end{itemize}  
 \quad \emph{Dropout} - 
@@ -180,9 +198,10 @@ To alleviate these problems,
 		\textbf{Space Complexity }\\ 
 		\quad The learned parameters in our model
 are from the embeddings and parameters in the self-attention
-layers, feed-forward networks and layer normalization.The total number of parameters is $O(\mid I \mid d + nd + d2)$, which is moderate compared to other methods (e.g. $O(\mid U \mid d + \mid I \mid d)$ for FPMC) since it does not grow with the number of users, and d is typically small in recommendation problems.\\$I$ – Item Set \\$U$ – User Set \\$d$ – Latent vector dimension \\
+layers, feed-forward networks and layer normalization.The total number of parameters is $O(\mid I \mid d + nd + d2)$, which is moderate compared to other methods (e.g. $O(\mid U \mid d + \mid I \mid d)$ for FPMC) since it does not grow with the number of users, and d is typically small in recommendation problems.\\$I$ – Item Set \\$U$ – User Set \\$d$ – Latent vector dimension\\
 
- \textbf{Time Complexity} \\
+
+\textbf{Time Complexity} \\
 		Mainly due to the self-attention layer and the feed-forward network, which is $O(n^{2}d + nd^{2})$. The dominant term is typically $O(n^{2}d)$ from the self-attention layer. A convenient property in our model is that the computation in each self-attention layer is fully parallelizable, which is amenable to GPU acceleration.
 
 \section{Conclusion}
@@ -193,4 +212,8 @@ layers, feed-forward networks and layer normalization.The total number of parame
 \item SASRec model is faster than conventional RNN/CNN based approaches due to more scope of parallelization.
 
 \end{itemize}
+
+\bibliographystyle{apacite}
+\bibliography{References}
+
 \end{document}
